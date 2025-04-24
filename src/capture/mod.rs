@@ -204,4 +204,18 @@ impl SimpleAudioCapture {
 
         Some(duration)
     }
+
+    pub fn stop(&self) {
+        self.is_recording.store(false, Ordering::SeqCst);
+
+        if let Ok(mut thread_guard) = self.recording_thread.lock() {
+            if let Some(handle) = thread_guard.take() {
+                let _ = handle.join();
+            }
+        }
+
+        if let Ok(mut data) = self.audio_data.lock() {
+            *data = Some(Vec::new());
+        }
+    }
 }

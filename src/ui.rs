@@ -51,11 +51,11 @@ impl UiState {
     pub fn view(&self) -> Column<UiEvent> {
         column![
             row![
-                button(text("Record").color(if self.is_recording {
-                    color!(255, 0, 0)
+                button(if self.is_recording {
+                    text("Start").color(color!(255, 0, 0))
                 } else {
-                    color!(0, 255, 0)
-                }))
+                    text("Stop").color(color!(0, 255, 0))
+                })
                 .on_press(UiEvent::OnBtnRecord)
                 .padding(5),
                 text("Duration: "),
@@ -118,7 +118,7 @@ impl UiState {
             .any(|phrase| cleaned_trans.ends_with(phrase))
         {
             self.is_recording = false;
-            self.recorder.pause();
+            self.recorder.stop();
         }
     }
 
