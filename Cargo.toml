@@ -1,0 +1,13 @@
+[package]
+name = "speak-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+cpal = "0.15.3"
+hound = "3.5.1"
+ctrlc = "3.2"
+whisper-rs = { version = "0.14.2", features = ["cuda"] }
+rubato = "0.16.2"
+owo-colors = "4.2.0"
