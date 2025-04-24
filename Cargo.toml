@@ -8,6 +8,8 @@ anyhow = "1.0.98"
 cpal = "0.15.3"
 hound = "3.5.1"
 ctrlc = "3.2"
-whisper-rs = { version = "0.14.2", features = ["cuda"] }
+whisper-rs = { version = "0.14.2", features = ["cuda", "log_backend"] }
 rubato = "0.16.2"
 owo-colors = "4.2.0"
+env_logger = "0.11.8"
+log = "0.4.27"
