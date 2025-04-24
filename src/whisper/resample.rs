@@ -1,17 +1,14 @@
 use anyhow::Result;
 use rubato::{Resampler, SincFixedIn, SincInterpolationType, WindowFunction};
 
-pub fn resample_to_16khz(audio_data: &[f32], sample_rate: u32, channels: usize) -> Result<Vec<f32>> {
+pub fn resample_to_16khz(
+    audio_data: &[f32],
+    sample_rate: u32,
+    channels: usize,
+) -> Result<Vec<f32>> {
     if sample_rate == 16000 {
         return Ok(audio_data.to_vec());
     }
-
-    // Print diagnostic information
-    println!(
-        "Resampling from {} Hz to 16000 Hz, channels: {}",
-        sample_rate, channels
-    );
-    println!("Input samples: {}", audio_data.len());
 
     // Setup resampler
     let params = rubato::SincInterpolationParameters {
@@ -58,6 +55,5 @@ pub fn resample_to_16khz(audio_data: &[f32], sample_rate: u32, channels: usize) 
         }
     }
 
-    println!("Output samples: {}", output.len());
     Ok(output)
 }

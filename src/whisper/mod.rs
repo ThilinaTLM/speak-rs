@@ -1,6 +1,15 @@
 #![allow(dead_code)]
 
+use anyhow::Result;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+
+mod resample;
+
+pub struct InputAudio<'a> {
+    pub data: &'a [f32],
+    pub sample_rate: u32,
+    pub channels: usize,
+}
 
 pub struct TranscribeOutput {
     pub combined: String,
@@ -8,9 +17,15 @@ pub struct TranscribeOutput {
 }
 
 pub struct Segment {
-    pub start: f32,
-    pub end: f32,
+    pub start: usize,
+    pub end: usize,
     pub text: String,
+}
+
+impl PartialEq for Segment {
+    fn eq(&self, other: &Self) -> bool {
+        self.start == other.start && self.end == other.end && self.text == other.text
+    }
 }
 
 pub struct SimpleTranscriber {
@@ -28,8 +43,20 @@ impl SimpleTranscriber {
         Self { ctx }
     }
 
-    pub fn transcribe(&self, audio_data: &[f32]) -> TranscribeOutput {
-        let mono_audio = whisper_rs::convert_stereo_to_mono_audio(audio_data)
+    pub fn transcribe(&self, audio_data: &InputAudio) -> Result<TranscribeOutput> {
+        let resampled_audio = match resample::resample_to_16khz(
+            audio_data.data,
+            audio_data.sample_rate,
+            audio_data.channels,
+        ) {
+            Ok(audio) => audio,
+            Err(_) => return Err(anyhow::anyhow!("failed to resample audio")),
+        };
+        if resampled_audio.len() < 16000 {
+            return Err(anyhow::anyhow!("resampled audio is too short"));
+        }
+
+        let mono_audio = whisper_rs::convert_stereo_to_mono_audio(&resampled_audio)
             .expect("failed to convert audio to mono");
 
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
@@ -65,16 +92,16 @@ impl SimpleTranscriber {
                 .expect("failed to get segment end timestamp");
 
             // Add formatted segment to combined transcription
-            combined.push_str(&format!("[{} - {}]: {}\n", start, end, text.clone()));
+            combined.push_str(&text);
 
             // Add segment to the segments list
             segments.push(Segment {
-                start: start as f32,
-                end: end as f32,
+                start: start as usize,
+                end: end as usize,
                 text: text,
             });
         }
 
-        TranscribeOutput { combined, segments }
+        Ok(TranscribeOutput { combined, segments })
     }
 }

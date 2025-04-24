@@ -193,4 +193,15 @@ impl SimpleAudioCapture {
             None
         }
     }
+
+    pub fn get_duration(&self) -> Option<f32> {
+        let audio_data = self.get_audio_data()?;
+        let sample_rate = self.get_sample_rate()? as f32;
+        let channels = self.get_channels()? as f32;
+
+        let num_samples = audio_data.len() as f32;
+        let duration = num_samples / (sample_rate * channels);
+
+        Some(duration)
+    }
 }
