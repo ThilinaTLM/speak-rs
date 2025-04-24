@@ -1,6 +1,7 @@
 use iced::{
-    Subscription, color, time,
+    Size, Subscription, color, time,
     widget::{Column, button, column, row, text},
+    window::Settings,
 };
 
 use std::time::{Duration, Instant};
@@ -128,7 +129,13 @@ impl UiState {
 }
 
 pub fn run() {
+    let mut settings = Settings::default();
+    settings.size = Size::new(700.0, 300.0);
+    settings.resizable = false;
+    settings.decorations = false;
+
     let _ = iced::application("Speak", UiState::update, UiState::view)
         .subscription(UiState::subscription)
+        .window(settings)
         .run();
 }
