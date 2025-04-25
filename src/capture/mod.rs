@@ -67,6 +67,8 @@ impl SimpleAudioCapture {
 
             let sample_rate_value = config.sample_rate().0;
             let channels_value = config.channels() as usize;
+            println!("sample_rate: {}", sample_rate_value);
+            println!("channels: {}", channels_value);
 
             if let Ok(mut sr) = sample_rate_clone.lock() {
                 *sr = Some(sample_rate_value);

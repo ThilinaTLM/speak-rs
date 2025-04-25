@@ -20,6 +20,7 @@ pub struct Segment {
     pub start: usize,
     pub end: usize,
     pub text: String,
+    pub confidence: f32,
 }
 
 impl PartialEq for Segment {
@@ -65,6 +66,9 @@ impl SimpleTranscriber {
         params.set_print_progress(false);
         params.set_print_realtime(false);
         params.set_print_timestamps(true);
+        params.set_audio_ctx(768);
+        params.set_no_speech_thold(0.5);
+        params.set_n_threads(2);
 
         // Run the model
         let mut state = self.ctx.create_state().expect("failed to create state");
@@ -91,14 +95,24 @@ impl SimpleTranscriber {
                 .full_get_segment_t1(i)
                 .expect("failed to get segment end timestamp");
 
+            let n_tok = state.full_n_tokens(i)?;
+            let mut sum_logprob = 0.0_f32;
+
+            for t in 0..n_tok {
+                let tok = state.full_get_token_data(i, t)?; // tok.plog is log-p
+                sum_logprob += tok.plog;
+            }
+
+            let avg_logprob = sum_logprob / n_tok as f32;
+            let confidence = avg_logprob.exp();
+
             // Add formatted segment to combined transcription
             combined.push_str(&text);
-
-            // Add segment to the segments list
             segments.push(Segment {
                 start: start as usize,
                 end: end as usize,
                 text: text,
+                confidence: confidence,
             });
         }
 

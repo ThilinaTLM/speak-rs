@@ -23,6 +23,8 @@ pub struct SpeakUi {
     transcriber: whisper::SimpleTranscriber,
     trans_updated_at: Instant,
     trans: String,
+    trans_history: String,
+    audio_offset_ms: usize,
 }
 
 impl Default for SpeakUi {
@@ -41,6 +43,8 @@ impl Default for SpeakUi {
             transcriber,
             trans_updated_at: Instant::now(),
             trans: String::new(),
+            trans_history: String::new(),
+            audio_offset_ms: 0,
         }
     }
 }
@@ -66,9 +70,12 @@ impl SpeakUi {
                     .align_y(alignment::Alignment::Center)
                     .spacing(20)
                 ),
-                container(text(&self.trans).size(20))
-                    .width(iced::Length::Fill)
-                    .height(iced::Length::Fill),
+                container(row![
+                    text(&self.trans_history).size(20),
+                    text(&self.trans).size(20).color(color!(120, 120, 120)),
+                ])
+                .width(iced::Length::Fill)
+                .height(iced::Length::Fill),
             ])
             .width(iced::Length::Fill)
             .height(iced::Length::Fill)
@@ -115,11 +122,14 @@ impl SpeakUi {
             return;
         }
 
+        let audio_offset_index = self.audio_offset_ms * sample_rate as usize / 100;
+
         // transcribe the audio data
+        let audio_window = &audio_data[audio_offset_index..];
         let transcription = self
             .transcriber
             .transcribe(&whisper::InputAudio {
-                data: &audio_data,
+                data: audio_window,
                 sample_rate,
                 channels,
             })
@@ -128,14 +138,24 @@ impl SpeakUi {
         self.trans = transcription.combined.trim().to_string();
         self.trans_updated_at = Instant::now();
 
-        let terminate_phrases = ["thats all", "that is all", "[blank audio]"];
-        let cleaned_trans = self.trans.replace(".", "").replace("'", "").to_lowercase();
-        if terminate_phrases
-            .iter()
-            .any(|phrase| cleaned_trans.ends_with(phrase))
-        {
-            self.is_recording = false;
-            self.recorder.stop();
+        if transcription.segments.len() > 1 {
+            let one_before_last_segment = &transcription.segments[transcription.segments.len() - 2];
+            self.audio_offset_ms += one_before_last_segment.end;
+            self.trans_history = format!(
+                "{} {}",
+                self.trans_history,
+                one_before_last_segment.text.trim()
+            );
+        }
+
+        let last_segment = &transcription.segments[transcription.segments.len() - 1];
+        self.trans = last_segment.text.trim().to_string();
+
+        for segment in &transcription.segments {
+            println!(
+                "[{}:{}, {:.2}] {}",
+                segment.start, segment.end, segment.confidence, segment.text
+            );
         }
     }
 }
