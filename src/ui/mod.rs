@@ -98,7 +98,7 @@ impl AppUI {
             let duration_timer = duration_timer.clone();
             let transcription_timer = transcription_timer.clone();
             self.window.on_close_button_clicked(move || {
-                recorder.stop();
+                recorder.clear();
                 duration_timer.stop();
                 transcription_timer.stop();
                 std::process::exit(0);
@@ -117,7 +117,6 @@ impl AppUI {
                 let recording = window.get_recording();
                 if recording {
                     recorder.pause();
-                    window.set_recording(false);
                     duration_timer.stop();
                     transcription_timer.stop();
 
@@ -130,7 +129,9 @@ impl AppUI {
                         }
                         Err(err) => handle_transcription_error(&window, err),
                     }
+                    window.set_recording(false);
                 } else {
+                    recorder.clear();
                     recorder.start();
                     window.set_transcription("".into());
                     window.set_recording(true);

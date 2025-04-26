@@ -49,10 +49,10 @@ export component MainWindow inherits Window {
     background: transparent;
     no-frame: true;
 
-    in property <string> duration-minutes: "00";
-    in property <string> duration-seconds: "00";
-    in property <bool> recording: false;
-    in property <string> transcription: "";
+    in-out property <bool> recording: false;
+    in-out property <string> duration-minutes: "00";
+    in-out property <string> duration-seconds: "00";
+    in-out property <string> transcription: "";
 
     callback record-button-clicked();
     callback close-button-clicked();

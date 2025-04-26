@@ -209,7 +209,7 @@ impl SimpleAudioCapture {
         Some(duration)
     }
 
-    pub fn stop(&self) {
+    pub fn clear(&self) {
         self.is_recording.store(false, Ordering::SeqCst);
 
         if let Ok(mut thread_guard) = self.recording_thread.lock() {
