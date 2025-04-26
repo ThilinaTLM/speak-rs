@@ -93,7 +93,9 @@ impl AppUI {
                     match transcribe_audio(&transcriber, &recorder) {
                         Ok(text) => {
                             if !text.is_empty() {
-                                if is_endswith_pattern(&text, r"(?i)that'?s all\.?$") {
+                                if behavior.stop_phrase_enabled
+                                    && is_endswith_pattern(&text, &behavior.stop_phrase_pattern)
+                                {
                                     log::debug!("stopping phrase detected, stopping recording");
                                     window.invoke_record_button_clicked();
                                 }
@@ -143,13 +145,28 @@ impl AppUI {
                     match transcribe_audio(&transcriber, &recorder) {
                         Ok(text) => {
                             if !text.is_empty() {
-                                if let Some(t) = remove_end_pattern(&text, r"(?i)that'?s all\.?$") {
-                                    log::debug!("transcribed text without stopping phrase: {}", t);
-                                    window.set_transcription(t.clone().into());
-                                    log::debug!("ui updated with transcription");
-                                    if behavior.auto_copy {
-                                        if let Ok(mut clipboard) = Clipboard::new() {
-                                            let _ = clipboard.set_text(t.to_string());
+                                if behavior.stop_phrase_enabled {
+                                    if let Some(t) =
+                                        remove_end_pattern(&text, &behavior.stop_phrase_pattern)
+                                    {
+                                        log::debug!(
+                                            "transcribed text without stopping phrase: {}",
+                                            t
+                                        );
+                                        window.set_transcription(t.clone().into());
+                                        log::debug!("ui updated with transcription");
+                                        if behavior.auto_copy {
+                                            if let Ok(mut clipboard) = Clipboard::new() {
+                                                let _ = clipboard.set_text(t.to_string());
+                                            }
+                                        }
+                                    } else {
+                                        window.set_transcription(text.clone().into());
+                                        log::debug!("ui updated with transcription");
+                                        if behavior.auto_copy {
+                                            if let Ok(mut clipboard) = Clipboard::new() {
+                                                let _ = clipboard.set_text(text.to_string());
+                                            }
                                         }
                                     }
                                 } else {

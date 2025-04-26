@@ -9,3 +9,5 @@ num_threads = 2
 [behavior]
 realtime_transcribe = true
 auto_copy = true
+stop_phrase_enabled = true
+stop_phrase_pattern = "(?i)that'?s all\\.?$"

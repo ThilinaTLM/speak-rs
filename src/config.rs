@@ -30,6 +30,8 @@ impl Default for WhisperConfig {
 pub struct BehaviorConfig {
     pub realtime_transcribe: bool,
     pub auto_copy: bool,
+    pub stop_phrase_enabled: bool,
+    pub stop_phrase_pattern: String,
 }
 
 impl Default for BehaviorConfig {
@@ -37,6 +39,8 @@ impl Default for BehaviorConfig {
         Self {
             realtime_transcribe: true,
             auto_copy: true,
+            stop_phrase_enabled: true,
+            stop_phrase_pattern: r"(?i)that'?s all\.?$".to_string(),
         }
     }
 }
@@ -87,6 +91,8 @@ impl AppConfig {
             .set_default("whisper.num_threads", 2)?
             .set_default("behavior.realtime_transcribe", true)?
             .set_default("behavior.auto_copy", true)?
+            .set_default("behavior.stop_phrase_enabled", true)?
+            .set_default("behavior.stop_phrase_pattern", r"(?i)that'?s all\.?$")?
             // Add configuration file
             .add_source(File::with_name(config_path.to_str().unwrap()).required(false))
             // Add environment variables with prefix SPEAK_
