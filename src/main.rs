@@ -14,6 +14,7 @@ fn main() -> Result<()> {
     whisper_rs::install_logging_hooks();
     env_logger::Builder::from_default_env()
         .filter_module("whisper_rs", LevelFilter::Off)
+        .format_level(true)
         .init();
 
     let ui = Arc::new(MainWindow::new()?);
@@ -42,12 +43,20 @@ fn main() -> Result<()> {
     let transcription_timer_fn = Arc::new(move || {
         let recording = _recorder.get_is_recording();
         if recording {
+            log::debug!("realtime transcribing audio");
             let audio_data = _recorder.get_audio_data().unwrap_or_default();
             let sample_rate = _recorder.get_sample_rate().unwrap_or(44100);
             let channels = _recorder.get_channels().unwrap_or(1);
             let audio_duration = _recorder.get_duration().unwrap_or(0.0);
+            log::debug!(
+                "audio summary:\n- duration: {}\n- sample rate: {}\n- channels: {}",
+                audio_duration,
+                sample_rate,
+                channels
+            );
 
             if audio_duration < 2.0 {
+                log::warn!("audio duration is less than 2 seconds");
                 return;
             }
 
@@ -58,8 +67,10 @@ fn main() -> Result<()> {
                     channels,
                 })
                 .unwrap();
+            log::debug!("realtime transcription: {}", transcription.combined);
 
             _ui.set_transcription(transcription.combined.trim().to_string().into());
+            log::debug!("realtime transcription updated on ui");
         }
     });
 
@@ -86,13 +97,20 @@ fn main() -> Result<()> {
             _duration_timer.stop();
             _transcription_timer.stop();
 
-            _ui.set_transcription("transcribing...".into());
+            log::debug!("final transcription");
             let audio_data = _recorder.get_audio_data().unwrap_or_default();
             let sample_rate = _recorder.get_sample_rate().unwrap_or(44100);
             let channels = _recorder.get_channels().unwrap_or(1);
             let audio_duration = _recorder.get_duration().unwrap_or(0.0);
+            log::debug!(
+                "audio summary:\n- duration: {}\n- sample rate: {}\n- channels: {}",
+                audio_duration,
+                sample_rate,
+                channels
+            );
 
             if audio_duration < 2.0 {
+                log::warn!("audio duration is less than 2 seconds");
                 return;
             }
 
@@ -103,8 +121,10 @@ fn main() -> Result<()> {
                     channels,
                 })
                 .unwrap();
+            log::debug!("final transcription: {}", transcription.combined);
 
             _ui.set_transcription(transcription.combined.trim().to_string().into());
+            log::debug!("final transcription updated on ui");
         } else {
             _ui.set_transcription("".into());
             _recorder.stop();
