@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use log::LevelFilter;
+use log::{LevelFilter, info};
 
 mod capture;
 mod config;
@@ -18,7 +18,11 @@ fn main() -> Result<()> {
         .init();
 
     // Load configuration
-    let config = config::AppConfig::new();
+    let config = config::AppConfig::new()?;
+    info!(
+        "Configuration loaded from: {}",
+        config::AppConfig::get_config_path()?.display()
+    );
 
     // Initialize core components
     let recorder = Arc::new(capture::SimpleAudioCapture::new());

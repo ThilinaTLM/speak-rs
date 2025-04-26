@@ -1,14 +1,16 @@
 use anyhow::Result;
 use arboard::Clipboard;
+use i_slint_backend_winit::WinitWindowAccessor;
 use log;
 use slint::{BackendSelector, Timer, TimerMode};
 use std::{sync::Arc, time::Duration};
 
 use crate::{capture, config::BehaviorConfig, whisper};
+use utils::{
+    handle_transcription_error, is_endswith_pattern, remove_end_pattern, transcribe_audio,
+};
 
 mod utils;
-use i_slint_backend_winit::WinitWindowAccessor;
-use utils::{handle_transcription_error, transcribe_audio};
 
 slint::include_modules!();
 
@@ -82,13 +84,24 @@ impl AppUI {
             let transcriber = self.transcriber.clone();
             let behavior = behavior.clone();
             Arc::new(move || {
+                if !behavior.realtime_transcribe {
+                    return;
+                }
                 let recording = recorder.get_is_recording();
-                if recording && behavior.realtime_transcribe {
+                if recording {
                     log::debug!("realtime transcribing audio");
                     match transcribe_audio(&transcriber, &recorder) {
                         Ok(text) => {
                             if !text.is_empty() {
-                                window.set_transcription(text.into());
+                                if is_endswith_pattern(&text, r"(?i)that'?s all\.?$") {
+                                    log::debug!("stopping phrase detected, stopping recording");
+                                    window.invoke_record_button_clicked();
+                                }
+
+                                if window.get_recording() {
+                                    window.set_transcription(text.into());
+                                    log::debug!("ui updated with realtime transcription");
+                                }
                             }
                         }
                         Err(err) => handle_transcription_error(&window, err),
@@ -130,10 +143,22 @@ impl AppUI {
                     match transcribe_audio(&transcriber, &recorder) {
                         Ok(text) => {
                             if !text.is_empty() {
-                                window.set_transcription(text.clone().into());
-                                if behavior.auto_copy {
-                                    if let Ok(mut clipboard) = Clipboard::new() {
-                                        let _ = clipboard.set_text(text.to_string());
+                                if let Some(t) = remove_end_pattern(&text, r"(?i)that'?s all\.?$") {
+                                    log::debug!("transcribed text without stopping phrase: {}", t);
+                                    window.set_transcription(t.clone().into());
+                                    log::debug!("ui updated with transcription");
+                                    if behavior.auto_copy {
+                                        if let Ok(mut clipboard) = Clipboard::new() {
+                                            let _ = clipboard.set_text(t.to_string());
+                                        }
+                                    }
+                                } else {
+                                    window.set_transcription(text.clone().into());
+                                    log::debug!("ui updated with transcription");
+                                    if behavior.auto_copy {
+                                        if let Ok(mut clipboard) = Clipboard::new() {
+                                            let _ = clipboard.set_text(text.to_string());
+                                        }
                                     }
                                 }
                             }

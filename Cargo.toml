@@ -5,21 +5,27 @@ edition = "2024"
 build = "build.rs"
 
 [dependencies]
-anyhow = "1.0.98"
-cpal = "0.15.3"
-whisper-rs = { version = "0.14.2", features = ["cuda", "log_backend"] }
-rubato = "0.16.2"
-env_logger = "0.11.8"
-log = "0.4.27"
+anyhow = "1.0"
+cpal = "0.15"
+whisper-rs = { version = "0.14", features = ["cuda", "log_backend"] }
+rubato = "0.16"
+env_logger = "0.11"
+log = "0.4"
 slint = { version = "1.11", features = [
     "backend-winit-wayland",
     "renderer-skia",
 ] }
-arboard = { version = "3.5.0", features = [
+arboard = { version = "3.5", features = [
     "wayland-data-control",
     "wl-clipboard-rs",
 ] }
-i-slint-backend-winit = "1.11.0"
+i-slint-backend-winit = "1.11"
+config = { version = "0.15", features = ["toml"] }
+clap = { version = "4.5", features = ["derive"] }
+directories = "6.0"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+regex = "1.11.1"
 
 [build-dependencies]
 slint-build = "1.11"

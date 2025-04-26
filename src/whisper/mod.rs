@@ -40,7 +40,7 @@ impl SimpleTranscriber {
     pub fn new(config: WhisperConfig) -> Result<Self> {
         let mut ctx_params = WhisperContextParameters::default();
         ctx_params.use_gpu(config.use_gpu);
-        
+
         let ctx = WhisperContext::new_with_params(config.model_path.to_str().unwrap(), ctx_params)
             .map_err(|e| anyhow::anyhow!("Failed to load model: {}", e))?;
 

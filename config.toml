@@ -1,0 +1,11 @@
+[whisper]
+model_path = "models/ggml-small.en.bin"
+use_gpu = true
+language = "en"
+audio_context = 768
+no_speech_threshold = 0.5
+num_threads = 2
+
+[behavior]
+realtime_transcribe = true
+auto_copy = true

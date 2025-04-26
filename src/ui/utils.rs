@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use log;
+use regex::Regex;
 
 use super::MainWindow;
 use crate::{capture, whisper};
@@ -48,4 +49,24 @@ pub fn transcribe_audio(
 
     log::debug!("transcription: {}", transcription.combined);
     Ok(transcription.combined.trim().to_string())
+}
+
+pub fn remove_end_pattern(text: &str, pattern: &str) -> Option<String> {
+    if let Ok(re) = Regex::new(&format!("{}$", pattern)) {
+        if re.is_match(text) {
+            if let Some(mat) = re.find(text) {
+                return Some(text[..mat.start()].to_string());
+            }
+        }
+    }
+    None
+}
+
+pub fn is_endswith_pattern(text: &str, pattern: &str) -> bool {
+    if let Ok(re) = Regex::new(&format!("{}$", pattern)) {
+        if re.is_match(text) {
+            return true;
+        }
+    }
+    false
 }
