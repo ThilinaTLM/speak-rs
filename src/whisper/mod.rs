@@ -3,6 +3,8 @@
 use anyhow::Result;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
+use crate::config::WhisperConfig;
+
 mod resample;
 
 pub struct InputAudio<'a> {
@@ -31,17 +33,18 @@ impl PartialEq for Segment {
 
 pub struct SimpleTranscriber {
     ctx: WhisperContext,
+    config: WhisperConfig,
 }
 
 impl SimpleTranscriber {
-    pub fn new() -> Self {
-        let path_to_model = "models/ggml-small.en.bin";
+    pub fn new(config: WhisperConfig) -> Result<Self> {
         let mut ctx_params = WhisperContextParameters::default();
-        ctx_params.use_gpu(true);
-        let ctx = WhisperContext::new_with_params(&path_to_model, ctx_params)
-            .expect("failed to load model");
+        ctx_params.use_gpu(config.use_gpu);
+        
+        let ctx = WhisperContext::new_with_params(config.model_path.to_str().unwrap(), ctx_params)
+            .map_err(|e| anyhow::anyhow!("Failed to load model: {}", e))?;
 
-        Self { ctx }
+        Ok(Self { ctx, config })
     }
 
     pub fn transcribe(&self, audio_data: &InputAudio) -> Result<TranscribeOutput> {
@@ -61,14 +64,14 @@ impl SimpleTranscriber {
             .expect("failed to convert audio to mono");
 
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-        params.set_language(Some("en"));
+        params.set_language(Some(&self.config.language));
         params.set_print_special(false);
         params.set_print_progress(false);
         params.set_print_realtime(false);
         params.set_print_timestamps(true);
-        params.set_audio_ctx(768);
-        params.set_no_speech_thold(0.5);
-        params.set_n_threads(2);
+        params.set_audio_ctx(self.config.audio_context);
+        params.set_no_speech_thold(self.config.no_speech_threshold);
+        params.set_n_threads(self.config.num_threads);
 
         // Run the model
         let mut state = self.ctx.create_state().expect("failed to create state");

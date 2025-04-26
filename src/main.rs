@@ -4,6 +4,7 @@ use anyhow::Result;
 use log::LevelFilter;
 
 mod capture;
+mod config;
 mod ui;
 mod whisper;
 
@@ -16,12 +17,15 @@ fn main() -> Result<()> {
         .format_level(true)
         .init();
 
+    // Load configuration
+    let config = config::AppConfig::new();
+
     // Initialize core components
     let recorder = Arc::new(capture::SimpleAudioCapture::new());
-    let transcriber = Arc::new(whisper::SimpleTranscriber::new());
+    let transcriber = Arc::new(whisper::SimpleTranscriber::new(config.whisper)?);
 
     // Initialize and run UI
-    let app_ui = ui::AppUI::new(recorder, transcriber)?;
+    let app_ui = ui::AppUI::new(recorder, transcriber, config.behavior)?;
     app_ui.run()?;
 
     Ok(())

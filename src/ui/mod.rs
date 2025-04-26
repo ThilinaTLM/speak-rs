@@ -4,7 +4,7 @@ use log;
 use slint::{BackendSelector, Timer, TimerMode};
 use std::{sync::Arc, time::Duration};
 
-use crate::{capture, whisper};
+use crate::{capture, config::BehaviorConfig, whisper};
 
 mod utils;
 use i_slint_backend_winit::WinitWindowAccessor;
@@ -18,12 +18,14 @@ pub struct AppUI {
     transcriber: Arc<whisper::SimpleTranscriber>,
     duration_timer: Arc<Timer>,
     transcription_timer: Arc<Timer>,
+    behavior: BehaviorConfig,
 }
 
 impl AppUI {
     pub fn new(
         recorder: Arc<capture::SimpleAudioCapture>,
         transcriber: Arc<whisper::SimpleTranscriber>,
+        behavior: BehaviorConfig,
     ) -> Result<Self> {
         let backend_selector = BackendSelector::new()
             .backend_name("winit".to_string())
@@ -41,6 +43,7 @@ impl AppUI {
             transcriber,
             duration_timer,
             transcription_timer,
+            behavior,
         };
 
         ui.setup_handlers();
@@ -53,6 +56,7 @@ impl AppUI {
         let recorder = self.recorder.clone();
         let duration_timer = self.duration_timer.clone();
         let transcription_timer = self.transcription_timer.clone();
+        let behavior = self.behavior.clone();
 
         // Duration timer function
         let duration_timer_fn = {
@@ -76,9 +80,10 @@ impl AppUI {
             let window = window.clone();
             let recorder = recorder.clone();
             let transcriber = self.transcriber.clone();
+            let behavior = behavior.clone();
             Arc::new(move || {
                 let recording = recorder.get_is_recording();
-                if recording {
+                if recording && behavior.realtime_transcribe {
                     log::debug!("realtime transcribing audio");
                     match transcribe_audio(&transcriber, &recorder) {
                         Ok(text) => {
@@ -112,6 +117,7 @@ impl AppUI {
             let transcriber = self.transcriber.clone();
             let duration_timer = duration_timer.clone();
             let transcription_timer = transcription_timer.clone();
+            let behavior = behavior.clone();
 
             self.window.on_record_button_clicked(move || {
                 let recording = window.get_recording();
@@ -124,7 +130,12 @@ impl AppUI {
                     match transcribe_audio(&transcriber, &recorder) {
                         Ok(text) => {
                             if !text.is_empty() {
-                                window.set_transcription(text.into());
+                                window.set_transcription(text.clone().into());
+                                if behavior.auto_copy {
+                                    if let Ok(mut clipboard) = Clipboard::new() {
+                                        let _ = clipboard.set_text(text.to_string());
+                                    }
+                                }
                             }
                         }
                         Err(err) => handle_transcription_error(&window, err),
