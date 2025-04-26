@@ -2,8 +2,9 @@ use anyhow::Result;
 use log::LevelFilter;
 
 mod capture;
-mod ui;
 mod whisper;
+
+slint::include_modules!();
 
 fn main() -> Result<()> {
     whisper_rs::install_logging_hooks();
@@ -11,7 +12,9 @@ fn main() -> Result<()> {
         .filter_module("whisper_rs", LevelFilter::Off)
         .init();
 
-    ui::run();
+    let ui = MainWindow::new()?;
+
+    ui.run()?;
 
     Ok(())
 }

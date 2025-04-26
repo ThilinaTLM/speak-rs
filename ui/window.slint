@@ -1,0 +1,124 @@
+import { AboutSlint, VerticalBox, HorizontalBox, Button } from "std-widgets.slint";
+
+component IconButton {
+    in property <brush> color: #ffffff;
+    in property <length> size: 30px;
+    in property <image> icon;
+
+    callback clicked();
+
+    width: size;
+    height: size;
+
+    Rectangle {
+        width: size;
+        height: size;
+        Image {
+            source: icon;
+            width: size;
+            height: size;
+            colorize: color;
+        }
+    }
+
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: pointer;
+        clicked => {
+            clicked();
+        }
+    }
+}
+
+component RecordButton inherits IconButton {
+    icon: @image-url("icons/mic.svg");
+}
+
+component CloseButton inherits IconButton {
+    icon: @image-url("icons/x.svg");
+}
+
+component CopyButton inherits IconButton {
+    icon: @image-url("icons/copy.svg");
+}
+
+export component MainWindow inherits Window {
+    height: 150px;
+    width: 700px;
+    background: transparent;
+    no-frame: true;
+
+    in property <string> duration-minutes: "00";
+    in property <string> duration-seconds: "00";
+    in property <bool> recording: false;
+    in property <string> transcription: "jsut an example";
+
+    callback record-button-clicked();
+    callback close-button-clicked();
+    callback copy-button-clicked();
+
+    Rectangle {
+        height: 100%;
+        width: 100%;
+        background: #000000;
+        padding: 10px;
+        border-radius: 10px;
+
+        VerticalLayout {
+            padding: 5px;
+            spacing: 5px;
+            header := HorizontalLayout {
+                VerticalLayout {
+                    padding-left: 15px;
+                    padding-right: 15px;
+                    RecordButton {
+                        color: recording ? #ff0000 : #40c556;
+                        clicked => {
+                            record-button-clicked();
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: duration-minutes + ":" + duration-seconds;
+                        color: #b6b6b6;
+                        font-size: 16px;
+                    }
+                }
+
+                CloseButton {
+                    color: #b6b6b6;
+                    clicked => {
+                        close-button-clicked();
+                    }
+                }
+            }
+
+            Rectangle {
+                background: #161616;
+                border-radius: 5px;
+
+                VerticalLayout {
+                    padding: 5px;
+                    Text {
+                        text: transcription;
+                    }
+
+                    HorizontalLayout {
+                        alignment: end;
+                        CopyButton {
+                            color: #b6b6b6;
+                            size: 18px;
+                            clicked => {
+                                copy-button-clicked();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
