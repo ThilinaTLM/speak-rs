@@ -52,11 +52,13 @@ export component MainWindow inherits Window {
     in property <string> duration-minutes: "00";
     in property <string> duration-seconds: "00";
     in property <bool> recording: false;
-    in property <string> transcription: "jsut an example";
+    in property <string> transcription: "";
 
     callback record-button-clicked();
     callback close-button-clicked();
     callback copy-button-clicked();
+    callback recording-changed(bool);
+    callback window-moved();
 
     Rectangle {
         height: 100%;
@@ -80,12 +82,18 @@ export component MainWindow inherits Window {
                     }
                 }
 
-                VerticalLayout {
-                    alignment: center;
-                    Text {
-                        text: duration-minutes + ":" + duration-seconds;
-                        color: #b6b6b6;
-                        font-size: 16px;
+                TouchArea {
+                    VerticalLayout {
+                        alignment: center;
+                        Text {
+                            text: duration-minutes + ":" + duration-seconds;
+                            color: #b6b6b6;
+                            font-size: 16px;
+                        }
+                    }
+
+                    moved => {
+                        window-moved();
                     }
                 }
 
