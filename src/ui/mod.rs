@@ -1,12 +1,13 @@
 use anyhow::Result;
 use arboard::Clipboard;
 use log;
-use slint::{Timer, TimerMode};
+use slint::{BackendSelector, Timer, TimerMode};
 use std::{sync::Arc, time::Duration};
 
 use crate::{capture, whisper};
 
 mod utils;
+use i_slint_backend_winit::WinitWindowAccessor;
 use utils::{handle_transcription_error, transcribe_audio};
 
 slint::include_modules!();
@@ -24,6 +25,12 @@ impl AppUI {
         recorder: Arc<capture::SimpleAudioCapture>,
         transcriber: Arc<whisper::SimpleTranscriber>,
     ) -> Result<Self> {
+        let backend_selector = BackendSelector::new()
+            .backend_name("winit".to_string())
+            .renderer_name("skia".to_string());
+
+        backend_selector.select()?;
+
         let window = Arc::new(MainWindow::new()?);
         let duration_timer = Arc::new(Timer::default());
         let transcription_timer = Arc::new(Timer::default());
@@ -37,6 +44,7 @@ impl AppUI {
         };
 
         ui.setup_handlers();
+
         Ok(ui)
     }
 
@@ -162,6 +170,17 @@ impl AppUI {
                 } else {
                     log::error!("Failed to access clipboard");
                 }
+            });
+        }
+
+        // Move window handler
+        {
+            let window = window.clone();
+            self.window.on_set_window_dragging(move |_| {
+                let _ = window.window().with_winit_window(|winit_win| {
+                    let _ = winit_win.drag_window();
+                    log::debug!("enabled window dragging");
+                });
             });
         }
     }
