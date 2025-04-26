@@ -1,240 +1,173 @@
-// use iced::{
-//     Background, Border, Element, Size, Subscription, Theme, alignment, border, color, theme, time,
-//     widget::{button, column, container, row, svg, text},
-//     window::Settings,
-// };
+use anyhow::Result;
+use arboard::Clipboard;
+use log;
+use slint::{Timer, TimerMode};
+use std::{sync::Arc, time::Duration};
 
-// use std::time::{Duration, Instant};
+use crate::{capture, whisper};
 
-// use crate::{capture, whisper};
+mod utils;
+use utils::{handle_transcription_error, transcribe_audio};
 
-// #[derive(Debug, Clone)]
-// pub enum Message {
-//     OnBtnRecord,
-//     OnClose,
-//     Tick(Instant),
-// }
+slint::include_modules!();
 
-// pub struct SpeakUi {
-//     // common
-//     clock_updated_at: Instant,
+pub struct AppUI {
+    window: Arc<MainWindow>,
+    recorder: Arc<capture::SimpleAudioCapture>,
+    transcriber: Arc<whisper::SimpleTranscriber>,
+    duration_timer: Arc<Timer>,
+    transcription_timer: Arc<Timer>,
+}
 
-//     // recording
-//     is_recording: bool,
-//     recorder: capture::SimpleAudioCapture,
+impl AppUI {
+    pub fn new(
+        recorder: Arc<capture::SimpleAudioCapture>,
+        transcriber: Arc<whisper::SimpleTranscriber>,
+    ) -> Result<Self> {
+        let window = Arc::new(MainWindow::new()?);
+        let duration_timer = Arc::new(Timer::default());
+        let transcription_timer = Arc::new(Timer::default());
 
-//     // transcription
-//     transcriber: whisper::SimpleTranscriber,
-//     trans_updated_at: Instant,
-//     trans: String,
-//     trans_history: String,
-//     audio_offset_ms: usize,
-// }
+        let ui = Self {
+            window,
+            recorder,
+            transcriber,
+            duration_timer,
+            transcription_timer,
+        };
 
-// impl Default for SpeakUi {
-//     fn default() -> Self {
-//         let recorder = capture::SimpleAudioCapture::new();
-//         let transcriber = whisper::SimpleTranscriber::new();
-//         Self {
-//             // common
-//             clock_updated_at: Instant::now(),
+        ui.setup_handlers();
+        Ok(ui)
+    }
 
-//             // recording
-//             is_recording: false,
-//             recorder,
+    fn setup_handlers(&self) {
+        let window = self.window.clone();
+        let recorder = self.recorder.clone();
+        let duration_timer = self.duration_timer.clone();
+        let transcription_timer = self.transcription_timer.clone();
 
-//             // transcription
-//             transcriber,
-//             trans_updated_at: Instant::now(),
-//             trans: String::new(),
-//             trans_history: String::new(),
-//             audio_offset_ms: 0,
-//         }
-//     }
-// }
+        // Duration timer function
+        let duration_timer_fn = {
+            let window = window.clone();
+            let recorder = recorder.clone();
+            Arc::new(move || {
+                let recording = recorder.get_is_recording();
+                if recording {
+                    if let Some(duration) = recorder.get_duration() {
+                        let minutes = duration as u32 / 60;
+                        let seconds = duration as u32 % 60;
+                        window.set_duration_minutes(format!("{:02}", minutes).into());
+                        window.set_duration_seconds(format!("{:02}", seconds).into());
+                    }
+                }
+            })
+        };
 
-// impl SpeakUi {
-//     pub fn view(&self) -> Element<Message> {
-//         container(column![
-//             container(
-//                 row![
-//                     row![
-//                         button(svg("assets/mic.svg").width(30).height(30))
-//                             .on_press(Message::OnBtnRecord)
-//                             .padding([10, 10])
-//                             .style(|theme: &Theme, _| {
-//                                 button::Style {
-//                                     background: Some(Background::Color(if self.is_recording {
-//                                         color!(255, 0, 0)
-//                                     } else {
-//                                         theme.palette().primary
-//                                     })),
-//                                     border: Border {
-//                                         color: theme.palette().primary,
-//                                         width: 1.0,
-//                                         radius: border::Radius::new(5),
-//                                     },
-//                                     ..button::Style::default()
-//                                 }
-//                             }),
-//                         text({
-//                             let total_seconds = self.recorder.get_duration().unwrap_or(0.0) as u32;
-//                             let minutes = total_seconds / 60;
-//                             let seconds = total_seconds % 60;
-//                             format!("{:02}:{:02}", minutes, seconds)
-//                         })
-//                         .size(18)
-//                         .color(color!(60, 60, 60))
-//                     ]
-//                     .align_y(alignment::Alignment::Center)
-//                     .spacing(10),
-//                     button(svg("assets/x.svg").width(10).height(10))
-//                         .on_press(Message::OnClose)
-//                         .padding([10, 10])
-//                         .style(|theme: &Theme, _| {
-//                             button::Style {
-//                                 background: Some(Background::Color(theme.palette().primary)),
-//                                 border: Border {
-//                                     color: theme.palette().primary,
-//                                     width: 1.0,
-//                                     radius: border::Radius::new(5),
-//                                 },
-//                                 ..button::Style::default()
-//                             }
-//                         }),
-//                 ]
-//                 .height(50)
-//                 .align_y(alignment::Alignment::Center)
-//                 .width(iced::Length::Fill)
-//                 .spacing(20)
-//             ).style(|_: &Theme| {
-//                 container::Style {
-//                     border: border::Border {
-//                         color: color!(255, 0, 0),
-//                         width: 1.0,
-//                         radius: border::Radius::new(0),
-//                     },
-//                     ..container::Style::default()
-//                 }
-//             }),
-//             container(row![
-//                 text(&self.trans_history).size(20),
-//                 text(&self.trans).size(20).color(color!(120, 120, 120)),
-//             ]).style(|_: &Theme| {
-//                 container::Style {
-//                     border: border::Border {
-//                         color: color!(0, 255, 0),
-//                         width: 1.0,
-//                         radius: border::Radius::new(0),
-//                     },
-//                     ..container::Style::default()
-//                 }
-//             }).height(iced::Length::Fill),
-//         ])
-//         .width(iced::Length::Fill)
-//         .height(iced::Length::Fill)
-//         .padding(10)
-//         .style(|theme: &Theme| container::Style {
-//             border: border::Border {
-//                 color: theme.palette().primary,
-//                 width: 2.0,
-//                 radius: border::Radius::new(5),
-//             },
-//             ..container::Style::default()
-//         })
-//         .into()
-//     }
+        // Transcription timer function
+        let transcription_timer_fn = {
+            let window = window.clone();
+            let recorder = recorder.clone();
+            let transcriber = self.transcriber.clone();
+            Arc::new(move || {
+                let recording = recorder.get_is_recording();
+                if recording {
+                    log::debug!("realtime transcribing audio");
+                    match transcribe_audio(&transcriber, &recorder) {
+                        Ok(text) => {
+                            if !text.is_empty() {
+                                window.set_transcription(text.into());
+                            }
+                        }
+                        Err(err) => handle_transcription_error(&window, err),
+                    }
+                }
+            })
+        };
 
-//     pub fn update(&mut self, message: Message) {
-//         match message {
-//             Message::OnBtnRecord => {
-//                 self.is_recording = !self.is_recording;
-//                 if self.is_recording {
-//                     self.recorder.start();
-//                 } else {
-//                     self.recorder.pause();
-//                 }
-//             }
-//             Message::Tick(tick) => {
-//                 if self.is_recording && self.trans_updated_at.elapsed().as_secs() > 3 {
-//                     self.transcribe();
-//                 }
-//                 self.clock_updated_at = tick;
-//             }
-//             Message::OnClose => {
-//                 self.is_recording = false;
-//                 self.recorder.stop();
-//             }
-//         }
-//     }
+        // Close button handler
+        {
+            let recorder = recorder.clone();
+            let duration_timer = duration_timer.clone();
+            let transcription_timer = transcription_timer.clone();
+            self.window.on_close_button_clicked(move || {
+                recorder.stop();
+                duration_timer.stop();
+                transcription_timer.stop();
+                std::process::exit(0);
+            });
+        }
 
-//     fn subscription(&self) -> Subscription<Message> {
-//         time::every(Duration::from_millis(500)).map(Message::Tick)
-//     }
+        // Record button handler
+        {
+            let window = window.clone();
+            let recorder = recorder.clone();
+            let transcriber = self.transcriber.clone();
+            let duration_timer = duration_timer.clone();
+            let transcription_timer = transcription_timer.clone();
 
-//     fn theme(_: &SpeakUi) -> theme::Theme {
-//         theme::Theme::TokyoNight
-//     }
+            self.window.on_record_button_clicked(move || {
+                let recording = window.get_recording();
+                if recording {
+                    recorder.pause();
+                    window.set_recording(false);
+                    duration_timer.stop();
+                    transcription_timer.stop();
 
-//     pub fn transcribe(&mut self) {
-//         // Get current audio data and properties
-//         let audio_data = self.recorder.get_audio_data().unwrap_or_default();
-//         let sample_rate = self.recorder.get_sample_rate().unwrap_or(44100);
-//         let channels = self.recorder.get_channels().unwrap_or(1);
-//         let audio_duration = self.recorder.get_duration().unwrap_or(0.0);
+                    log::debug!("final transcription");
+                    match transcribe_audio(&transcriber, &recorder) {
+                        Ok(text) => {
+                            if !text.is_empty() {
+                                window.set_transcription(text.into());
+                            }
+                        }
+                        Err(err) => handle_transcription_error(&window, err),
+                    }
+                } else {
+                    recorder.start();
+                    window.set_transcription("".into());
+                    window.set_recording(true);
 
-//         if audio_duration < 3.0 {
-//             return;
-//         }
+                    let duration_timer_fn = duration_timer_fn.clone();
+                    duration_timer.start(
+                        TimerMode::Repeated,
+                        Duration::from_millis(500),
+                        move || {
+                            duration_timer_fn();
+                        },
+                    );
 
-//         let audio_offset_index = self.audio_offset_ms * sample_rate as usize / 100;
+                    let transcription_timer_fn = transcription_timer_fn.clone();
+                    transcription_timer.start(
+                        TimerMode::Repeated,
+                        Duration::from_millis(3000),
+                        move || {
+                            transcription_timer_fn();
+                        },
+                    );
+                }
+            });
+        }
 
-//         // transcribe the audio data
-//         let audio_window = &audio_data[audio_offset_index..];
-//         let transcription = self
-//             .transcriber
-//             .transcribe(&whisper::InputAudio {
-//                 data: audio_window,
-//                 sample_rate,
-//                 channels,
-//             })
-//             .unwrap();
+        // Copy button handler
+        {
+            let window = window.clone();
+            self.window.on_copy_button_clicked(move || {
+                if let Ok(mut clipboard) = Clipboard::new() {
+                    let transcription = window.get_transcription();
+                    if !transcription.is_empty() {
+                        if let Err(err) = clipboard.set_text(transcription.to_string()) {
+                            log::error!("Failed to copy to clipboard: {}", err);
+                        }
+                    }
+                } else {
+                    log::error!("Failed to access clipboard");
+                }
+            });
+        }
+    }
 
-//         self.trans = transcription.combined.trim().to_string();
-//         self.trans_updated_at = Instant::now();
-
-//         if transcription.segments.len() > 1 {
-//             let one_before_last_segment = &transcription.segments[transcription.segments.len() - 2];
-//             self.audio_offset_ms += one_before_last_segment.end;
-//             self.trans_history = format!(
-//                 "{} {}",
-//                 self.trans_history,
-//                 one_before_last_segment.text.trim()
-//             );
-//         }
-
-//         let last_segment = &transcription.segments[transcription.segments.len() - 1];
-//         self.trans = last_segment.text.trim().to_string();
-
-//         for segment in &transcription.segments {
-//             println!(
-//                 "[{}:{}, {:.2}] {}",
-//                 segment.start, segment.end, segment.confidence, segment.text
-//             );
-//         }
-//     }
-// }
-
-// pub fn run() {
-//     let mut settings = Settings::default();
-//     settings.size = Size::new(700.0, 200.0);
-//     settings.resizable = false;
-//     settings.decorations = false;
-//     settings.transparent = true;
-
-//     let _ = iced::application("Speak", SpeakUi::update, SpeakUi::view)
-//         .subscription(SpeakUi::subscription)
-//         .window(settings)
-//         .theme(SpeakUi::theme)
-//         .run();
-// }
+    pub fn run(&self) -> Result<()> {
+        self.window.run()?;
+        Ok(())
+    }
+}
