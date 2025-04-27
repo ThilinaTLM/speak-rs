@@ -1,0 +1,73 @@
+export component IconButton {
+    in property <brush> color: #ffffff;
+    in property <brush> hover-color: #000000;
+    in property <length> size: 30px;
+    in property <image> icon;
+
+    callback clicked();
+
+    width: size;
+    height: size;
+
+    Rectangle {
+        width: size;
+        height: size;
+        icon-image := Image {
+            source: icon;
+            width: size;
+            height: size;
+            colorize: color;
+        }
+    }
+
+    ta := TouchArea {
+        width: parent.width;
+        height: parent.height;
+        mouse-cursor: pointer;
+        clicked => {
+            clicked();
+        }
+    }
+
+    states [
+        hover when ta.has-hover: {
+            icon-image.colorize: hover-color;
+            in {
+                animate icon-image.colorize { duration: 100ms; }
+            }
+            out {
+                animate icon-image.colorize { duration: 100ms; }
+            }
+        }
+        not-hover when !ta.has-hover: {
+            icon-image.colorize: color;
+            in {
+                animate icon-image.colorize { duration: 100ms; }
+            }
+            out {
+                animate icon-image.colorize { duration: 100ms; }
+            }
+        }
+    ]
+}
+
+export component RecordButton inherits IconButton {
+    icon: @image-url("icons/mic.svg");
+
+    in property <bool> recording: false;
+
+    color: recording ? #b71c1c : #1b5e20;
+    hover-color: recording ? #d32f2f : #388e3c;
+}
+
+export component CloseButton inherits IconButton {
+    color: #b6b6b6;
+    hover-color: #ffffff;
+    icon: @image-url("icons/x.svg");
+}
+
+export component CopyButton inherits IconButton {
+    color: #b6b6b6;
+    hover-color: #ffffff;
+    icon: @image-url("icons/copy.svg");
+}

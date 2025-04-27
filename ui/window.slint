@@ -1,47 +1,6 @@
 import { AboutSlint, VerticalBox, HorizontalBox, Button, Spinner } from "std-widgets.slint";
+import { IconButton, RecordButton, CloseButton, CopyButton } from "icon-button.slint";
 
-component IconButton {
-    in property <brush> color: #ffffff;
-    in property <length> size: 30px;
-    in property <image> icon;
-
-    callback clicked();
-
-    width: size;
-    height: size;
-
-    Rectangle {
-        width: size;
-        height: size;
-        Image {
-            source: icon;
-            width: size;
-            height: size;
-            colorize: color;
-        }
-    }
-
-    ta := TouchArea {
-        width: parent.width;
-        height: parent.height;
-        mouse-cursor: pointer;
-        clicked => {
-            clicked();
-        }
-    }
-}
-
-component RecordButton inherits IconButton {
-    icon: @image-url("icons/mic.svg");
-}
-
-component CloseButton inherits IconButton {
-    icon: @image-url("icons/x.svg");
-}
-
-component CopyButton inherits IconButton {
-    icon: @image-url("icons/copy.svg");
-}
 
 export component MainWindow inherits Window {
     height: 150px;
@@ -75,7 +34,7 @@ export component MainWindow inherits Window {
                     padding-left: 15px;
                     padding-right: 15px;
                     RecordButton {
-                        color: recording ? #ff0000 : #40c556;
+                        recording: true;
                         clicked => {
                             record-button-clicked();
                         }
@@ -103,7 +62,8 @@ export component MainWindow inherits Window {
                 }
 
                 CloseButton {
-                    color: #b6b6b6;
+                    
+                    size: 18px;
                     clicked => {
                         close-button-clicked();
                     }
