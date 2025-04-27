@@ -48,28 +48,26 @@ The application can be configured through `config.toml`:
 
 ```toml
 [whisper]
-model_path = "models/ggml-small.en.bin"  # Path to Whisper model
-use_gpu = true                           # Enable GPU acceleration
-language = "en"                          # Target language
-audio_context = 768                      # Audio context size
-no_speech_threshold = 0.5                # Threshold for no speech detection
-num_threads = 2                          # Number of CPU threads to use
+model_path = "models/ggml-small.en.bin"       # Path to Whisper model
+use_gpu = true                                # Enable GPU acceleration
+language = "en"                               # Target language
+audio_context = 768                           # Audio context size
+no_speech_threshold = 0.5                     # Threshold for no speech detection
+num_threads = 2                               # Number of CPU threads to use
 
 [behavior]
-realtime_transcribe = true               # Enable real-time transcription
-auto_copy = true                         # Automatically copy text to clipboard
-stop_phrase_enabled = true               # Enable stop phrase detection
+realtime_transcribe = true                    # Enable real-time transcription
+auto_copy = true                              # Automatically copy text to clipboard
+stop_phrase_enabled = true                    # Enable stop phrase detection
 stop_phrase_pattern = "(?i)that'?s all\\.?$"  # Regex pattern for stop phrase
 ```
 
 ## Usage
 
 1. Run the application:
-
    ```bash
    cargo run --release
    ```
-
 2. The application will start with a GUI interface
 3. Click the record button to start transcription
 4. Speak into your microphone
