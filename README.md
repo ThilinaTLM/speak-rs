@@ -119,10 +119,6 @@ stop_phrase_pattern = "(?i)that'?s all\\.?$"  # Regex pattern for stop phrase
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
-
-MIT
-
 ## Acknowledgments
 
 - OpenAI for the Whisper model
