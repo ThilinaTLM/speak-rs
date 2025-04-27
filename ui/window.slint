@@ -9,6 +9,7 @@ export component MainWindow inherits Window {
     no-frame: true;
 
     in-out property <bool> recording: false;
+    in-out property <bool> transcribing: false;
     in-out property <string> duration-minutes: "00";
     in-out property <string> duration-seconds: "00";
     in-out property <string> transcription: "";
@@ -62,7 +63,6 @@ export component MainWindow inherits Window {
                 }
 
                 CloseButton {
-                    
                     size: 18px;
                     clicked => {
                         close-button-clicked();
@@ -80,10 +80,24 @@ export component MainWindow inherits Window {
                         visible: true;
                         wrap: word-wrap;
                         text: transcription;
+                        color: transcribing ? #b6b6b6 : #ffffff;
                     }
 
                     HorizontalLayout {
                         alignment: end;
+                        spacing: 5px;
+
+                        VerticalLayout {
+                            alignment: center;
+                            Spinner {
+                                visible: transcribing;
+                                indeterminate: true;
+                                width: parent.height;
+                                height: 20px;
+                                progress: 0.2;
+                            }
+                        }
+
                         CopyButton {
                             color: #b6b6b6;
                             size: 18px;

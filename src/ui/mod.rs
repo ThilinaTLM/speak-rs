@@ -90,6 +90,7 @@ impl AppUI {
                 let recording = recorder.get_is_recording();
                 if recording {
                     log::debug!("realtime transcribing audio");
+                    window.set_transcribing(true);
                     match transcribe_audio(&transcriber, &recorder) {
                         Ok(text) => {
                             if !text.is_empty() {
@@ -142,6 +143,7 @@ impl AppUI {
                     transcription_timer.stop();
 
                     log::debug!("final transcription");
+                    window.set_transcribing(true);
                     match transcribe_audio(&transcriber, &recorder) {
                         Ok(text) => {
                             if !text.is_empty() {
@@ -182,6 +184,7 @@ impl AppUI {
                         }
                         Err(err) => handle_transcription_error(&window, err),
                     }
+                    window.set_transcribing(false);
                     window.set_recording(false);
                 } else {
                     recorder.clear();
