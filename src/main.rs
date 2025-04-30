@@ -12,7 +12,7 @@ fn main() -> Result<()> {
     // Initialize logging
     whisper_rs::install_logging_hooks();
     env_logger::Builder::from_default_env()
-        .filter_level(LevelFilter::Debug)
+        .filter_level(LevelFilter::Info)
         .filter_module("whisper_rs", LevelFilter::Off)
         .format_level(true)
         .init();

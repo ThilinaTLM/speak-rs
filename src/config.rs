@@ -61,17 +61,32 @@ impl Default for AppConfig {
 }
 
 impl AppConfig {
-    pub fn new() -> Result<Self> {
-        // Get the configuration directory
+    pub fn get_config_path() -> Result<PathBuf> {
+        // First check in the project directory
+        let current_dir = std::env::current_dir().context("Failed to get current directory")?;
+        let project_config = current_dir.join("speak.toml");
+        if project_config.exists() {
+            return Ok(project_config);
+        }
+
+        // Then check in the home directory
         let project_dirs = ProjectDirs::from("rs", "", "speak-rs")
             .context("Failed to determine project directories")?;
+        let home_config = project_dirs.config_dir().join("speak.toml");
 
-        let config_dir = project_dirs.config_dir();
-        std::fs::create_dir_all(config_dir)?;
-        let config_path = config_dir.join("config.toml");
+        Ok(home_config)
+    }
 
-        // Create default config if it doesn't exist
-        if !config_path.exists() {
+    pub fn new() -> Result<Self> {
+        let config_path = Self::get_config_path()?;
+
+        // Create default config in home directory if it doesn't exist
+        if !config_path.exists() && !config_path.starts_with(std::env::current_dir()?) {
+            let project_dirs = ProjectDirs::from("rs", "", "speak-rs")
+                .context("Failed to determine project directories")?;
+            let config_dir = project_dirs.config_dir();
+            std::fs::create_dir_all(config_dir)?;
+
             let default_config = Self::default();
             let toml = toml::to_string_pretty(&default_config)?;
             std::fs::write(&config_path, toml)?;
@@ -79,7 +94,7 @@ impl AppConfig {
 
         // Build configuration with the following priority (highest to lowest):
         // 1. Environment variables (SPEAK_*)
-        // 2. Configuration file
+        // 2. Configuration file (from project dir or home dir)
         // 3. Default values
         let config = Config::builder()
             // Start with default values
@@ -103,11 +118,5 @@ impl AppConfig {
         let app_config = config.try_deserialize()?;
 
         Ok(app_config)
-    }
-
-    pub fn get_config_path() -> Result<PathBuf> {
-        let project_dirs = ProjectDirs::from("rs", "", "speak-rs")
-            .context("Failed to determine project directories")?;
-        Ok(project_dirs.config_dir().join("config.toml"))
     }
 }
