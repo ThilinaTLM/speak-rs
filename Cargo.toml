@@ -12,6 +12,7 @@ rubato = "0.16"
 env_logger = "0.11"
 log = "0.4"
 slint = { version = "1.11", features = [
+    "backend-winit",
     "backend-winit-wayland",
     "renderer-skia",
 ] }
